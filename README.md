@@ -1,28 +1,21 @@
 # Docker Tailscale Sidecar
 
-The core idea is simple: we use a separate Docker container (the "sidecar")
-running Tailscale and share its network with your application container. This
-way, the sidecar can see your app as if it's running on `localhost` and expose
+An example Docker container ("sidecar") running Tailscale and share its network with an application container. 
+
+By utilizing a sidecar, you can see your app as if it's running on `localhost` and expose
 it to your Tailnet using `tailscale serve`.
 
-We've included a super basic Flask app (`flask-app/`) as an example, but you can
-swap it out with pretty much any HTTP service you want!
-
-Ready to dive in?
+A basic Flask app (`flask-app/`) is offered as an example, but you can
+swap it out with pretty much any HTTP service.
 
 ## Getting Started
 
 1.  Clone this repository.
 2.  Make sure you have Docker and Docker Compose installed.
-3.  You'll need a Tailscale account and an API key for unattended
-    authentication. Generate one in your [Tailscale Admin
-    Console](https://login.tailscale.com/admin) under **Settings** -> **API
-    keys**. For automated setups, using ephemeral keys with pre-authorized tags
+3.  Tailscale API key is needed for unattended
+    authentication. For automated setups, using ephemeral keys with pre-authorized tags
     is recommended.
 4.  Copy `docker-compose.yml.example` to `docker-compose.yml`:
-    ```bash
-    cp docker-compose.yml.example docker-compose.yml
-    ```
 5.  Edit `docker-compose.yml` and replace `tskey-auth-YOUR_AUTH_KEY_HERE` with
     your actual Tailscale API key. If you used pre-authorized tags, make sure
     the `TS_TAGS` environment variable matches them.
@@ -70,13 +63,15 @@ services:
       context: ./tailscale-sidecar # Path to the sidecar's Dockerfile context
       dockerfile: Dockerfile
     container_name: tailscale-app-sidecar
+
     # *** The Magic Bit: Shared Network Namespace ***
     # `network_mode: service:flask-app` makes the sidecar container *share the network stack*
     # of the `flask-app` container. Why? Because `tailscale serve` needs to proxy to
     # a service running on its *local* network interfaces (i.e., `localhost`).
     # By sharing the network namespace, `localhost:<app-port>` from inside the sidecar
     # *is* your app container!
-    network_mode: service:flask-app
+
+network_mode: service:flask-app
     cap_add:
       - NET_ADMIN # Tailscale needs admin network privileges inside the container
     devices:
@@ -104,7 +99,7 @@ networks:
 
 ```
 
-### Networking Choices: What They Mean
+### Learnings: Networking settings in `docker-compose` file
 
 *   **`flask-app.networks: - app-net`**: Your app container lives on a standard
     Docker bridge network. It can talk to other containers on this network by
@@ -140,7 +135,7 @@ tailscale serve --tcp <external_port> tcp://localhost:<internal_port> &
 *   The `&` at the end is important! It runs the command in the background so
     the entrypoint script can finish and the container stays running.
 
-### Addressing the `localhost` Limitation (Why `network_mode: service:...` is key)
+### Learnings: Addressing the `localhost` Limitation
 
 Initially, you might think you could just use the service name, like `tailscale
 serve --tcp 80 tcp://flask-app:5000`. But `tailscale serve` is designed to proxy
@@ -154,7 +149,7 @@ By using `network_mode: service:flask-app`, the sidecar *shares* the
 *points directly to the Flask app* running in that shared namespace, making
 `tailscale serve --tcp 80 tcp://localhost:5000` work perfectly!
 
-### Configuring the Exposed Port
+### Learnings: Configuring the Exposed Port
 
 Want your app accessible on a different port on your Tailnet? Easy! Just change
 the `--tcp <external_port>` flag in the `tailscale serve` command within
