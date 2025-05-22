@@ -1,0 +1,31 @@
+services:
+  flask-app:
+    build:
+      context: ./flask-app
+      dockerfile: Dockerfile
+    container_name: my-flask-app
+    networks:
+      - app-net
+
+  tailscale-sidecar:
+    build:
+      context: ./tailscale-sidecar
+      dockerfile: Dockerfile
+    container_name: tailscale-app-sidecar
+    network_mode: service:flask-app
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      TS_AUTHKEY: "tskey-auth-kmB4sEf4Uh11CNTRL-4nhTMtfNz78tSDb4ifqj78ZiiGbphEmg2"
+      TS_HOSTNAME: "my-flask-app-docker-sidecar"
+      TS_TAGS: "tag:flask-app-service,tag:dockerized-app"
+      TS_EXTRA_ARGS: ""
+    depends_on:
+      - flask-app
+    restart: unless-stopped
+
+networks:
+   app-net:
+     driver: bridge
