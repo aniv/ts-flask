@@ -18,7 +18,7 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     environment:
-      TS_AUTHKEY: "tskey-auth-kmB4sEf4Uh11CNTRL-4nhTMtfNz78tSDb4ifqj78ZiiGbphEmg2"
+      TS_AUTHKEY: "tskey-auth-[...]"
       TS_HOSTNAME: "my-flask-app-docker-sidecar"
       TS_TAGS: "tag:flask-app-service,tag:dockerized-app"
       TS_EXTRA_ARGS: ""
